@@ -35,7 +35,7 @@ jobs:
       - name: Build Armbian (${{ matrix.id }})
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           git clone --depth=1 --branch v26.8.0-trunk.424 https://github.com/armbian/build.git /tmp/armbian-build
           cd /tmp/armbian-build
           sudo -E ./compile.sh build ${{ matrix.args }}

@@ -6,17 +6,19 @@
 // Base: arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts
 // Changes vs Tanix TX6:
 //   * model/compatible strings
-//   * explicit 1 GB DDR3 memory node (basic DRAM is 0x40000000)
-//     for the 1 GB variant; u-boot normally injects the size anyway
-//   * no internal Bluetooth (Rubycon XR819 wifi has no BT),
-//     so the rtl8822cs UART-BT node from TX6 is intentionally absent;
-//     use an USB Bluetooth dongle (kernel module btusb)
+//   * explicit 1 GB DDR3 memory node (DRAM base is 0x40000000)
+//   * no internal Bluetooth (XR819 wifi has no BT); USB-BT dongle
+//     works via kernel module btusb - no DTS changes needed
+//   * Ethernet: AC200 EPHY nodes copied from Armbian sunxi-6.18 patches
+//     (0401-arm64-dts-sun50i-h6-add-ac200-ephy.patch,
+//      arm64-dts-sun50i-h6-tanix-enable-ethernet.patch) so the port comes
+//     up on Armbian kernels that carry the AC200 driver
 // Build:
 //   cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
 //       -I <kernel>/arch/arm64/boot/dts/allwinner \
 //       -I <kernel>/include \
-//       sun50i-h6-redbox-mini6.dts -o /tmp/rb66-pre.dts
-//   dtc -I dts -O dtb -o sun50i-h6-redbox-mini6.dtb /tmp/rb66-pre.dts
+//       sun50i-h6-redbox-mini6.dts -o /tmp/rb6-pre.dts
+//   dtc -I dts -O dtb -o sun50i-h6-redbox-mini6.dtb /tmp/rb6-pre.dts
 
 /dts-v1/;
 
@@ -26,6 +28,10 @@
 	model = "Redbox Mini 6 (v1)";
 	compatible = "redbox,mini6-v1", "allwinner,sun50i-h6";
 
+	aliases {
+		ethernet0 = &emac;
+	};
+
 	/* 1 GB DDR3 variant: 0x40000000 .. 0x7FFFFFFF
 	 * (for a 2 GB box replace the last cell with 0x80000000
 	 *  or simply drop this node and let u-boot fill in the size) */
@@ -33,6 +39,123 @@
 		device_type = "memory";
 		reg = <0x0 0x40000000 0x0 0x40000000>;
 	};
+
+	/* 24 MHz clock for the internal AC200 (PWM channel 1) */
+	ac200_pwm_clk: ac200_clk {
+		compatible = "pwm-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwm1_pin>;
+		pwms = <&pwm 1 42 0>;
+		status = "disabled";
+	};
+
+	soc {
+		i2c3: i2c@5002c00 {
+			compatible = "allwinner,sun50i-h6-i2c",
+				     "allwinner,sun6i-a31-i2c";
+			reg = <0x05002c00 0x400>;
+			interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&ccu CLK_BUS_I2C3>;
+			resets = <&ccu RST_BUS_I2C3>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c3_pins>;
+			clock-frequency = <100000>;
+			status = "disabled";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			ac200: mfd@10 {
+				compatible = "x-powers,ac200";
+				reg = <0x10>;
+				clocks = <&ac200_pwm_clk>;
+				interrupt-parent = <&pio>;
+				interrupts = <1 20 IRQ_TYPE_LEVEL_LOW>;
+				interrupt-controller;
+				#interrupt-cells = <1>;
+				nvmem-cells = <&ac200_bg>;
+				nvmem-cell-names = "bandgap";
+
+				ac200_ephy_ctl: syscon {
+					compatible = "x-powers,ac200-ephy-ctl";
+					nvmem-cells = <&ephy_calib>;
+					nvmem-cell-names = "calibration";
+					#clock-cells = <0>;
+					#reset-cells = <0>;
+					phy-mode = "rmii";
+					status = "disabled";
+				};
+			};
+		};
+	};
+};
+
+&sid {
+	ephy_calib: ephy_calib@2c {
+		reg = <0x2c 0x2>;
+	};
+
+	ac200_bg: ac200_bg@30 {
+		reg = <0x30 0x2>;
+	};
+};
+
+&pio {
+	ext_rmii_pins: rmii_pins {
+		pins = "PA0", "PA1", "PA2", "PA3", "PA4",
+		       "PA5", "PA6", "PA7", "PA8", "PA9";
+		function = "emac";
+		drive-strength = <40>;
+	};
+
+	i2c3_pins: i2c3-pins {
+		pins = "PB17", "PB18";
+		function = "i2c3";
+		bias-pull-up;
+	};
+
+	pwm1_pin: pwm1-pin {
+		pins = "PB19";
+		function = "pwm1";
+	};
+};
+
+&ac200_pwm_clk {
+	status = "okay";
+};
+
+&ac200_ephy_ctl {
+	x-powers,led-polarity = <GPIO_ACTIVE_HIGH>;
+	phy-address = <1>;
+	status = "okay";
+};
+
+&emac {
+	pinctrl-names = "default";
+	pinctrl-0 = <&ext_rmii_pins>;
+	phy-mode = "rmii";
+	phy-handle = <&ext_rmii_phy>;
+	status = "okay";
+};
+
+&i2c3 {
+	status = "okay";
+};
+
+&mdio {
+	ext_rmii_phy: ethernet-phy@1 {
+		compatible = "ethernet-phy-id0044.1400",
+			     "ethernet-phy-ieee802.3-c22";
+		reg = <1>;
+		resets = <&ac200_ephy_ctl>;
+		reset-names = "phy";
+		clocks = <&ac200_ephy_ctl>;
+	};
+};
+
+&pwm {
+	status = "okay";
 };
 
 &r_ir {

@@ -34,7 +34,7 @@ jobs:
 
       - name: Build Armbian (${{ matrix.id }})
         run: |
-          git clone --depth=1 --branch v26.8.3 https://github.com/armbian/build.git /tmp/armbian-build
+          git clone --depth=1 --branch v26.8.0-trunk.424 https://github.com/armbian/build.git /tmp/armbian-build
           cd /tmp/armbian-build
           ./compile.sh build ${{ matrix.args }}
           ls -lh output/images/
@@ -71,5 +71,5 @@ jobs:
           gh release create "$TAG" \
             /tmp/redbox-mini6-${VARIANT}-*.img.xz /tmp/redbox-mini6-${VARIANT}.sha256 \
             --repo "$GITHUB_REPOSITORY" \
-            --title "Redbox Mini 6 (v1) — Armbian 26.8.3 — ${VARIANT}" \
-            --notes "Armbian 26.8.3 для Redbox Mini 6 v1 (Allwinner H6, 1 ГБ RAM), вариант: ${VARIANT}. Записывайте так: xz -d файл.img.xz, затем dd/Rufus/Etcher."
+            --title "Redbox Mini 6 (v1) — Armbian 26.8 — ${VARIANT}" \
+            --notes "Armbian 26.8 для Redbox Mini 6 v1 (Allwinner H6, 1 ГБ RAM), вариант: ${VARIANT}. Записывайте так: xz -d файл.img.xz, затем dd/Rufus/Etcher."

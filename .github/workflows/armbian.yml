@@ -101,7 +101,7 @@ jobs:
             patchutils pkg-config python3 rdfind rsync shtool swig unzip \
             uuid-dev wget default-jre-headless xfonts-utils xsltproc \
             zlib1g-dev curl lua5.2
-          git clone --depth=1 https://github.com/LibreELEC/LibreELEC.tv.git /tmp/le-build
+          git clone --depth=1 --branch 12.95.1 https://github.com/LibreELEC/LibreELEC.tv.git /tmp/le-build
           cd /tmp/le-build
           PROJECT=Allwinner DEVICE=H6 ARCH=aarch64 make image
           find target -maxdepth 1 -name '*.img*' | xargs ls -lh

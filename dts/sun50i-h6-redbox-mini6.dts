@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+//
+// Redbox Mini 6 (v1) - A1 Belarus operator TV box
+// Allwinner H6 (sun50i-h6), based on Tanix TX6 board layout
+//
+// Base: arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts
+// Changes vs Tanix TX6:
+//   * model/compatible strings
+//   * explicit 1 GB DDR3 memory node (basic DRAM is 0x40000000)
+//     for the 1 GB variant; u-boot normally injects the size anyway
+//   * no internal Bluetooth (Rubycon XR819 wifi has no BT),
+//     so the rtl8822cs UART-BT node from TX6 is intentionally absent;
+//     use an USB Bluetooth dongle (kernel module btusb)
+// Build:
+//   cpp -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
+//       -I <kernel>/arch/arm64/boot/dts/allwinner \
+//       -I <kernel>/include \
+//       sun50i-h6-redbox-mini6.dts -o /tmp/rb66-pre.dts
+//   dtc -I dts -O dtb -o sun50i-h6-redbox-mini6.dtb /tmp/rb66-pre.dts
+
+/dts-v1/;
+
+#include "sun50i-h6-tanix.dtsi"
+
+/ {
+	model = "Redbox Mini 6 (v1)";
+	compatible = "redbox,mini6-v1", "allwinner,sun50i-h6";
+
+	/* 1 GB DDR3 variant: 0x40000000 .. 0x7FFFFFFF
+	 * (for a 2 GB box replace the last cell with 0x80000000
+	 *  or simply drop this node and let u-boot fill in the size) */
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0x0 0x40000000 0x0 0x40000000>;
+	};
+};
+
+&r_ir {
+	/* Mini 6 remote: keys partly overlap Tanix tables;
+	 * switch to another map (e.g. rc-rc6-mce) if keys mismatch */
+	linux,rc-map-name = "rc-tanix-tx5max";
+};

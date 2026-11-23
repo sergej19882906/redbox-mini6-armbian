@@ -93,6 +93,14 @@ jobs:
 
       - name: Build LibreELEC (H6 / tanix-tx6)
         run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake autotools-dev bc bison build-essential bzip2 \
+            flex gawk gettext gperf intltool libfl-dev libncurses-dev \
+            libparse-yapp-perl libtool libxml-parser-perl libzip-dev lzop \
+            patchutils pkg-config python3 rdfind rsync shtool swig unzip \
+            uuid-dev wget default-jre-headless xfonts-utils xsltproc \
+            zlib1g-dev curl lua5.2
           git clone --depth=1 https://github.com/LibreELEC/LibreELEC.tv.git /tmp/le-build
           cd /tmp/le-build
           PROJECT=Allwinner DEVICE=H6 ARCH=aarch64 make image

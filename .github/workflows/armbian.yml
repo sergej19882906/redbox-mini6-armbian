@@ -18,7 +18,7 @@ jobs:
           - id: minimal
             args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=yes BUILD_DESKTOP=no KERNEL_CONFIGURE=no"
           - id: lxqt
-            args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=no BUILD_DESKTOP=yes DESKTOP_ENVIRONMENT=lxqt DESKTOP_ENVIRONMENT_CONFIG_NAME=config_base KERNEL_CONFIGURE=no"
+            args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=no BUILD_DESKTOP=yes DESKTOP_ENVIRONMENT=lxqt DESKTOP_TIER=minimal KERNEL_CONFIGURE=no"
     env:
       VARIANT: ${{ matrix.id }}
     steps:
@@ -34,9 +34,12 @@ jobs:
 
       - name: Build Armbian (${{ matrix.id }})
         run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
           git clone --depth=1 --branch v26.8.0-trunk.424 https://github.com/armbian/build.git /tmp/armbian-build
           cd /tmp/armbian-build
-          ./compile.sh build ${{ matrix.args }}
+          sudo -E ./compile.sh build ${{ matrix.args }}
+          sudo chown -R runner:runner output
           ls -lh output/images/
 
       - name: Inject Redbox Mini 6 DTB

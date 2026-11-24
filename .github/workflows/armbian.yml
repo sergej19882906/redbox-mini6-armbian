@@ -80,8 +80,10 @@ jobs:
           path: /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz
           compression-level: 0
           if-no-files-found: error
+          retry-attempts: 3
 
   build-libreelec:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:

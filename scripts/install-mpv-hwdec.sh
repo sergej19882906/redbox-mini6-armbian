@@ -55,6 +55,7 @@ if [ -f /tmp/mpv-v4l2req.tar.gz ]; then
     echo "restoring cached mpv/ffmpeg..."
     tar tzf /tmp/mpv-v4l2req.tar.gz >/dev/null
     tar xzf /tmp/mpv-v4l2req.tar.gz -C "$ROOT/"
+    chroot "$ROOT" ldconfig
 else
     cat > "$ROOT/root/build-mpv.sh" <<'CHROOT_SCRIPT'
 #!/bin/bash

@@ -33,7 +33,7 @@ cd ffmpeg
     --disable-static --enable-shared --enable-gpl --enable-version3 \
     --extra-cflags="-Wno-error=incompatible-pointer-types"
 make -j"$(nproc)"
-make DESTDIR="$OUT" install
+make install
 ldconfig
 
 cd /usr/src
@@ -41,15 +41,16 @@ git clone -q --depth 1 -b v0.42.0 https://github.com/mpv-player/mpv.git
 cd mpv
 meson setup build --prefix=/usr/local
 ninja -C build
-meson install -C build --destdir "$OUT"
+ninja -C build install
+ldconfig
 
-mkdir -p "$OUT/usr/local/etc/mpv"
+test -x /usr/local/bin/mpv
+mkdir -p "$OUT/usr/local/bin" "$OUT/usr/local/etc/mpv"
+cp /usr/local/bin/mpv "$OUT/usr/local/bin/mpv"
 printf 'hwdec=v4l2request\nvo=gpu-next\n' > "$OUT/usr/local/etc/mpv/mpv.conf"
 
-test -x "$OUT/usr/local/bin/mpv"
-
 # collect all non-glibc libs mpv links against (incl. custom ffmpeg libs)
-LIBS=$(ldd "$OUT/usr/local/bin/mpv" | awk '{print $3}' | grep -v '^$' | sort -u)
+LIBS=$(ldd /usr/local/bin/mpv | awk '{print $3}' | grep -v '^$' | sort -u)
 for lib in $LIBS; do
     case "$lib" in
         /lib/ld-*|*/libc.so*|*/libpthread*|*/libm.so*|*/libdl*|*/librt*) continue ;;

@@ -1,0 +1,206 @@
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # retrigger after api.github.com outage
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'vibe/redbox-mini6-armbian-e6d327'
+    paths:
+      - '.github/workflows/armbian.yml'
+      - 'scripts/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: minimal
+            args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=yes BUILD_DESKTOP=no KERNELBRANCH=tag:v6.18.40 KERNEL_CONFIGURE=no"
+          - id: lxqt
+            args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=no BUILD_DESKTOP=yes DESKTOP_ENVIRONMENT=lxqt DESKTOP_TIER=minimal KERNELBRANCH=tag:v6.18.40 KERNEL_CONFIGURE=no"
+    env:
+      VARIANT: ${{ matrix.id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                      /usr/local/.ghc /usr/local/share/boost /usr/lib/jvm \
+                      /opt/hostedtoolcache/CodeQL
+          sudo docker image prune -af || true
+          df -h /
+
+      - name: Build Armbian (${{ matrix.id }})
+        run: |
+          sudo apt-get update
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          git clone --depth=1 --branch v26.8.0-trunk.424 https://github.com/armbian/build.git /tmp/armbian-build
+          cd /tmp/armbian-build
+          sudo -E ./compile.sh build ${{ matrix.args }}
+          sudo chown -R runner:runner output
+          ls -lh output/images/
+          imgs=$(ls output/images/*.img 2>/dev/null | wc -l)
+          if [ "$imgs" -lt 1 ]; then
+            echo "##[error]Build step ended but no *.img in output/images — Armbian build did not run"
+            tail -100 log/*.log 2>/dev/null || true
+            exit 1
+          fi
+
+      - name: Inject Redbox Mini 6 DTB
+        run: |
+          shopt -s nullglob
+          imgs=(/tmp/armbian-build/output/images/*.img)
+          [ ${#imgs[@]} -ge 1 ] || { echo "##[error]no .img found for DTB injection"; exit 1; }
+          for f in "${imgs[@]}"; do
+            sudo bash scripts/inject-dtb.sh "$f"
+          done
+
+      - name: Cache mpv/ffmpeg (v4l2-request) builds
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mpv-v4l2req.tar.gz
+          key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
+
+      - name: Install mpv with v4l2-request hwdec
+        run: |
+          shopt -s nullglob
+          imgs=(/tmp/armbian-build/output/images/*.img)
+          [ ${#imgs[@]} -ge 1 ] || { echo "##[error]no .img found for mpv install"; exit 1; }
+          for f in "${imgs[@]}"; do
+            sudo bash scripts/install-mpv-hwdec.sh "$f"
+          done
+
+      - name: Compress
+        run: |
+          shopt -s nullglob
+          imgs=(/tmp/armbian-build/output/images/*.img)
+          [ ${#imgs[@]} -ge 1 ] || { echo "##[error]no .img found to compress"; exit 1; }
+          for f in "${imgs[@]}"; do
+            out="/tmp/redbox-mini6-${VARIANT}-$(date +%Y%m%d).img.xz"
+            xz -T0 -2 -c "$f" > "$out"
+            sha256sum "$out" | tee /tmp/redbox-mini6-${VARIANT}.sha256
+            rm -f "$f"
+          done
+          ls -lh /tmp/redbox-mini6-${VARIANT}*
+
+      - name: Attach to v1.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -x
+          which gh
+          for i in $(seq 1 60); do
+            timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break
+            timeout 300 gh release create v1.0 --repo "$GITHUB_REPOSITORY" \
+              --title "Redbox Mini 6 (v1) — v1.0" \
+              --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request" && break
+            echo "retry create $i"; sleep 30
+          done
+          for i in $(seq 1 60); do
+            timeout 1800 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
+              /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz /tmp/redbox-mini6-${{ matrix.id }}.sha256 && break
+            echo "retry upload $i"; sleep 30
+          done
+          timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: redbox-mini6-${{ matrix.id }}
+          path: /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz
+          compression-level: 0
+          if-no-files-found: error
+
+  build-libreelec:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'LE:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+                      /usr/local/.ghc /usr/local/share/boost /usr/lib/jvm \
+                      /opt/hostedtoolcache/CodeQL
+          sudo docker image prune -af || true
+          df -h /
+
+      - name: Build LibreELEC (H6 / tanix-tx6)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake autotools-dev bc bison build-essential bzip2 \
+            flex gawk gettext gperf intltool libfl-dev libncurses-dev \
+            libparse-yapp-perl libtool libxml-parser-perl libzip-dev lzop \
+            patchutils pkg-config python3 rdfind rsync shtool swig unzip \
+            uuid-dev wget default-jre-headless xfonts-utils xsltproc \
+            zlib1g-dev curl lua5.2
+          git clone --depth=1 --branch 12.95.1 https://github.com/LibreELEC/LibreELEC.tv.git /tmp/le-build
+          sed -e 's|PKG_VERSION="1.8.3"|PKG_VERSION="1.8.2"|' \
+              -e 's|PKG_SHA256="21b26bc75cd37b548d7952f2794cde711efa6c6151c4147cc3c52cfedbf11df4"|PKG_SHA256="3b888e01f3d25f7914bbfd31139066bb4547e079322975134b03c92e4c6a2066"|' \
+              -i /tmp/le-build/packages/debug/libunwind/package.mk
+          sed -e 's|PKG_URL="http://bitmath.org/code/mtdev/\${PKG_NAME}-\${PKG_VERSION}.tar.bz2"|PKG_URL="https://deb.debian.org/debian/pool/main/m/mtdev/mtdev_1.1.7.orig.tar.gz"|' \
+              -e 's|PKG_SHA256="a107adad2101fecac54ac7f9f0e0a0dd155d954193da55c2340c97f2ff1d814e"|PKG_SHA256="a55bd02a9af4dd266c0042ec608744fff3a017577614c057da09f1f4566ea32c"|' \
+              -i /tmp/le-build/packages/wayland/mtdev/package.mk
+          sed -e 's|PKG_URL="https://linuxtv.org/downloads/v4l-utils/\${PKG_NAME}-\${PKG_VERSION}.tar.xz"|PKG_URL="https://deb.debian.org/debian/pool/main/v/v4l-utils/v4l-utils_1.32.0.orig.tar.xz"|' \
+              -i /tmp/le-build/packages/sysutils/v4l-utils/package.mk
+          grep -E 'PKG_VERSION|PKG_SHA256' /tmp/le-build/packages/debug/libunwind/package.mk
+          grep -E 'PKG_URL' /tmp/le-build/packages/wayland/mtdev/package.mk
+          cd /tmp/le-build
+          PROJECT=Allwinner DEVICE=H6 ARCH=aarch64 make image
+          find target -maxdepth 1 -name '*.img*' | xargs ls -lh
+
+      - name: Inject Redbox Mini 6 DTB
+        run: |
+          shopt -s nullglob
+          for f in /tmp/le-build/target/*tanix-tx6*.img.gz; do gunzip -kf "$f"; done
+          for f in /tmp/le-build/target/*tanix-tx6*.img; do
+            sudo bash scripts/inject-le-dtb.sh "$f"
+          done
+          ls -lh /tmp/le-build/target/
+
+      - name: Compress
+        run: |
+          for f in /tmp/le-build/target/*tanix-tx6*.img; do
+            [ -f "$f" ] || continue
+            out="/tmp/libreelec-redbox-mini6-$(date +%Y%m%d).img.xz"
+            xz -T0 -2 -c "$f" > "$out"
+            sha256sum "$out" | tee /tmp/libreelec-redbox-mini6.sha256
+            rm -f "$f"
+          done
+
+      - name: Attach to v1.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -x
+          which gh
+          for i in $(seq 1 60); do
+            timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break
+            timeout 300 gh release create v1.0 --repo "$GITHUB_REPOSITORY" \
+              --title "Redbox Mini 6 (v1) — v1.0" \
+              --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request" && break
+            echo "retry create $i"; sleep 30
+          done
+          for i in $(seq 1 60); do
+            timeout 1800 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
+              /tmp/libreelec-redbox-mini6-*.img.xz /tmp/libreelec-redbox-mini6.sha256 && break
+            echo "retry upload $i"; sleep 30
+          done
+          timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: libreelec-redbox-mini6
+          path: /tmp/libreelec-redbox-mini6-*.img.xz
+          compression-level: 0
+          if-no-files-found: error

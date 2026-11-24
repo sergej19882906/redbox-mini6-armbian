@@ -1,0 +1,52 @@
+name: mpv v4l2-request (aarch64)
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mpv-build.yml'
+      - 'scripts/build-mpv-v4l2req.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cached tarball
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mpv-v4l2req.tar.gz
+          key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
+
+      - name: Build in arm64 trixie container
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo rm -rf /tmp/outvol /tmp/mpv-v4l2req.tar.gz
+          docker run --rm --platform linux/arm64 \
+            -v "$GITHUB_WORKSPACE:/ws:ro" \
+            -v /tmp/outvol:/out \
+            arm64v8/debian:trixie \
+            bash -c 'cp -r /ws /ws-rw && cd /ws-rw && OUT=/out WS=/out bash scripts/build-mpv-v4l2req.sh'
+          sudo cp /tmp/outvol/mpv-v4l2req.tar.gz /tmp/mpv-v4l2req.tar.gz
+          [ -f /tmp/mpv-v4l2req.tar.gz ] || { echo "tarball missing"; exit 1; }
+          ls -lh /tmp/mpv-v4l2req.tar.gz
+
+      - name: Save to cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/mpv-v4l2req.tar.gz
+          key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mpv-v4l2req
+          path: /tmp/mpv-v4l2req.tar.gz
+          compression-level: 0
+          if-no-files-found: error

@@ -51,7 +51,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/mpv-v4l2req.tar.gz
-          key: mpv-v4l2req-ffmpeg-v4l2request-hwaccel-mpv-0.42.0
+          key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
 
       - name: Install mpv with v4l2-request hwdec
         run: |

@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/mpv-v4l2req.tar.gz
-          key: mpv-v4l2req-ffmpeg-v4l2request-hwaccel-mpv-0.42.0
+          key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
 
       - name: Build in arm64 trixie container
         if: steps.cache.outputs.cache-hit != 'true'
@@ -34,6 +34,7 @@ jobs:
             arm64v8/debian:trixie \
             bash -c 'cp -r /ws /ws-rw && cd /ws-rw && OUT=/out WS=/out bash scripts/build-mpv-v4l2req.sh'
           mv /tmp/outvol/mpv-v4l2req.tar.gz /tmp/mpv-v4l2req.tar.gz
+          [ -f /tmp/mpv-v4l2req.tar.gz ] || { file /tmp/outvol/mpv-v4l2req.tar.gz; ls -la /tmp/outvol; exit 1; }
           ls -lh /tmp/mpv-v4l2req.tar.gz
 
       - name: Save to cache
@@ -41,7 +42,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: /tmp/mpv-v4l2req.tar.gz
-          key: mpv-v4l2req-ffmpeg-v4l2request-hwaccel-mpv-0.42.0
+          key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
 
       - uses: actions/upload-artifact@v4
         with:

@@ -46,10 +46,19 @@ jobs:
           sudo -E ./compile.sh build ${{ matrix.args }}
           sudo chown -R runner:runner output
           ls -lh output/images/
+          imgs=$(ls output/images/*.img 2>/dev/null | wc -l)
+          if [ "$imgs" -lt 1 ]; then
+            echo "##[error]Build step ended but no *.img in output/images — Armbian build did not run"
+            tail -100 log/*.log 2>/dev/null || true
+            exit 1
+          fi
 
       - name: Inject Redbox Mini 6 DTB
         run: |
-          for f in /tmp/armbian-build/output/images/*.img; do
+          shopt -s nullglob
+          imgs=(/tmp/armbian-build/output/images/*.img)
+          [ ${#imgs[@]} -ge 1 ] || { echo "##[error]no .img found for DTB injection"; exit 1; }
+          for f in "${imgs[@]}"; do
             sudo bash scripts/inject-dtb.sh "$f"
           done
 
@@ -61,18 +70,25 @@ jobs:
 
       - name: Install mpv with v4l2-request hwdec
         run: |
-          for f in /tmp/armbian-build/output/images/*.img; do
+          shopt -s nullglob
+          imgs=(/tmp/armbian-build/output/images/*.img)
+          [ ${#imgs[@]} -ge 1 ] || { echo "##[error]no .img found for mpv install"; exit 1; }
+          for f in "${imgs[@]}"; do
             sudo bash scripts/install-mpv-hwdec.sh "$f"
           done
 
       - name: Compress
         run: |
-          for f in /tmp/armbian-build/output/images/*.img; do
+          shopt -s nullglob
+          imgs=(/tmp/armbian-build/output/images/*.img)
+          [ ${#imgs[@]} -ge 1 ] || { echo "##[error]no .img found to compress"; exit 1; }
+          for f in "${imgs[@]}"; do
             out="/tmp/redbox-mini6-${VARIANT}-$(date +%Y%m%d).img.xz"
             xz -T0 -2 -c "$f" > "$out"
             sha256sum "$out" | tee /tmp/redbox-mini6-${VARIANT}.sha256
             rm -f "$f"
           done
+          ls -lh /tmp/redbox-mini6-${VARIANT}*
 
       - name: Attach to v1.0 release
         env:

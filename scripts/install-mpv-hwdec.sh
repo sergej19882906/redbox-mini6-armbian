@@ -22,10 +22,9 @@ cleanup() {
 trap cleanup EXIT
 
 mount_root() {
-    LOOP=$(losetup -fP --show "$IMG")
-    for i in $(seq 1 30); do
+    LOOP=$(losetup -fP --show "$IMG" 2>/dev/null || true)
+    for i in $(seq 1 5); do
         [ -b "${LOOP}p2" ] && break
-        partprobe "$LOOP" 2>/dev/null || true
         sleep 1
     done
     if [ -b "${LOOP}p2" ]; then
@@ -34,7 +33,8 @@ mount_root() {
         return 0
     fi
     echo "no ${LOOP}p2, falling back to offset mount" >&2
-    START=$(sfdisk -d "$IMG" | grep 'start=' | grep -o 'start= *[0-9]*' | tr -dc '0-9\n' | sed -n '2p')
+    sfdisk -d "$IMG" >&2 || true
+    START=$(sfdisk -d "$IMG" 2>/dev/null | awk '/p2[[:space:]]*:/ {for (i=1;i<NF;i++) if ($i=="start=") print $(i+1)}')
     [ -n "$START" ] || { echo "cannot determine rootfs offset" >&2; return 1; }
     mount -o offset=$((START * 512)) "$IMG" "$ROOT"
     echo "rootfs mounted via offset $START"

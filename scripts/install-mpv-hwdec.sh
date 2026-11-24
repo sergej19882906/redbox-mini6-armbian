@@ -24,17 +24,22 @@ trap cleanup EXIT
 mount_root() {
     LOOP=$(losetup -fP --show "$IMG" 2>/dev/null || true)
     for i in $(seq 1 5); do
-        [ -b "${LOOP}p2" ] && break
+        [ -b "${LOOP}p1" ] || [ -b "${LOOP}p2" ] && break
         sleep 1
     done
+    if [ -b "${LOOP}p1" ]; then
+        mount "${LOOP}p1" "$ROOT"
+        echo "rootfs mounted from ${LOOP}p1"
+        return 0
+    fi
     if [ -b "${LOOP}p2" ]; then
         mount "${LOOP}p2" "$ROOT"
         echo "rootfs mounted from ${LOOP}p2"
         return 0
     fi
-    echo "no ${LOOP}p2, falling back to offset mount" >&2
+    echo "no loop partitions device nodes, falling back to offset mount" >&2
     sfdisk -d "$IMG" >&2 || true
-    START=$(sfdisk -d "$IMG" 2>/dev/null | awk '/p2[[:space:]]*:/ {for (i=1;i<NF;i++) if ($i=="start=") print $(i+1)}')
+    START=$(sfdisk -d "$IMG" 2>/dev/null | awk '{for (i=1;i<NF;i++) if ($i=="start=") {print $(i+1); exit}}')
     [ -n "$START" ] || { echo "cannot determine rootfs offset" >&2; return 1; }
     mount -o offset=$((START * 512)) "$IMG" "$ROOT"
     echo "rootfs mounted via offset $START"

@@ -80,12 +80,19 @@ jobs:
         run: |
           set -x
           which gh
-          gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+          for i in $(seq 1 60); do
+            gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break
             gh release create v1.0 --repo "$GITHUB_REPOSITORY" \
               --title "Redbox Mini 6 (v1) — v1.0" \
-              --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request"
-          gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
-            /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz /tmp/redbox-mini6-${{ matrix.id }}.sha256
+              --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request" && break
+            echo "retry create $i"; sleep 30
+          done
+          for i in $(seq 1 60); do
+            gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
+              /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz /tmp/redbox-mini6-${{ matrix.id }}.sha256 && break
+            echo "retry upload $i"; sleep 30
+          done
+          gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets
 
       - uses: actions/upload-artifact@v4
         continue-on-error: true
@@ -158,12 +165,19 @@ jobs:
         run: |
           set -x
           which gh
-          gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+          for i in $(seq 1 60); do
+            gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break
             gh release create v1.0 --repo "$GITHUB_REPOSITORY" \
               --title "Redbox Mini 6 (v1) — v1.0" \
-              --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request"
-          gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
-            /tmp/libreelec-redbox-mini6-*.img.xz /tmp/libreelec-redbox-mini6.sha256
+              --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request" && break
+            echo "retry create $i"; sleep 30
+          done
+          for i in $(seq 1 60); do
+            gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
+              /tmp/libreelec-redbox-mini6-*.img.xz /tmp/libreelec-redbox-mini6.sha256 && break
+            echo "retry upload $i"; sleep 30
+          done
+          gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets
 
       - uses: actions/upload-artifact@v4
         continue-on-error: true

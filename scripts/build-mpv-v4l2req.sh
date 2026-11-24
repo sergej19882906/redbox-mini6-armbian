@@ -76,9 +76,6 @@ for lib in $LIBS; do
 done
 
 cd "$OUT"
-tar czf "$WS/mpv-v4l2req.tar.gz" \
-    usr/local/bin/mpv usr/local/etc/mpv usr/local/lib/libav* \
-    usr/local/lib/libswscale* usr/local/lib/libswresample* usr/local/lib/libpostproc* \
-    usr/lib/aarch64-linux-gnu/
+tar czf "$WS/mpv-v4l2req.tar.gz" usr
 
 echo "built: $WS/mpv-v4l2req.tar.gz"

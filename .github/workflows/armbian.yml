@@ -1,7 +1,6 @@
-name: Armbian for Redbox Mini 6 (v1)
+name: Armbian + LibreELEC for Redbox Mini 6 (v1)
 
 on:
-  push:
   workflow_dispatch:
 
 permissions:
@@ -64,19 +63,6 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
-      - name: Attach to GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="redbox-mini6-${VARIANT}-run${{ github.run_number }}"
-          sudo chown -R runner /tmp/redbox-mini6-*
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-          gh release create "$TAG" \
-            /tmp/redbox-mini6-${VARIANT}-*.img.xz /tmp/redbox-mini6-${VARIANT}.sha256 \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Redbox Mini 6 (v1) — Armbian 26.8 — ${VARIANT}" \
-            --notes "Armbian 26.8 (trunk ≈ 26.8.3) для Redbox Mini 6 v1 (Allwinner H6, 1 ГБ RAM), вариант: ${VARIANT}. Записывайте так: xz -d файл.img.xz, затем dd/Rufus/Etcher."
-
   build-libreelec:
     runs-on: ubuntu-latest
     timeout-minutes: 350
@@ -135,16 +121,3 @@ jobs:
           path: /tmp/libreelec-redbox-mini6-*.img.xz
           compression-level: 0
           if-no-files-found: error
-
-      - name: Attach to GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="libreelec-redbox-mini6-run${{ github.run_number }}"
-          sudo chown -R runner /tmp/libreelec-redbox-mini6*
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-          gh release create "$TAG" \
-            /tmp/libreelec-redbox-mini6-*.img.xz /tmp/libreelec-redbox-mini6.sha256 \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Redbox Mini 6 (v1) — LibreELEC (H6 nightly)" \
-            --notes "LibreELEC (PROJECT=Allwinner DEVICE=H6, device tanix-tx6) для Redbox Mini 6 v1, в образ вжит DTB Redbox Mini 6 (1 ГБ RAM). Запись: xz -d файл.img.xz, затем dd/Rufus/Etcher."

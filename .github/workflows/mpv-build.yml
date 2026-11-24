@@ -33,8 +33,8 @@ jobs:
             -v /tmp/outvol:/out \
             arm64v8/debian:trixie \
             bash -c 'cp -r /ws /ws-rw && cd /ws-rw && OUT=/out WS=/out bash scripts/build-mpv-v4l2req.sh'
-          mv /tmp/outvol/mpv-v4l2req.tar.gz /tmp/mpv-v4l2req.tar.gz
-          [ -f /tmp/mpv-v4l2req.tar.gz ] || { file /tmp/outvol/mpv-v4l2req.tar.gz; ls -la /tmp/outvol; exit 1; }
+          sudo cp /tmp/outvol/mpv-v4l2req.tar.gz /tmp/mpv-v4l2req.tar.gz
+          [ -f /tmp/mpv-v4l2req.tar.gz ] || { echo "tarball missing"; exit 1; }
           ls -lh /tmp/mpv-v4l2req.tar.gz
 
       - name: Save to cache

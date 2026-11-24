@@ -30,7 +30,8 @@ git clone -q --depth 1 -b v4l2-request-hwaccel https://github.com/kwiboo/FFmpeg.
 cd ffmpeg
 ./configure --prefix=/usr/local \
     --disable-debug --disable-doc --disable-programs --disable-ffplay \
-    --disable-static --enable-shared --enable-gpl --enable-version3
+    --disable-static --enable-shared --enable-gpl --enable-version3 \
+    --extra-cflags="-Wno-error=incompatible-pointer-types"
 make -j"$(nproc)"
 make DESTDIR="$OUT" install
 ldconfig

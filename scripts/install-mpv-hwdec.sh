@@ -28,9 +28,16 @@ mount_root() {
         partprobe "$LOOP" 2>/dev/null || true
         sleep 1
     done
-    [ -b "${LOOP}p2" ] || { echo "partition ${LOOP}p2 not found in $IMG" >&2; return 1; }
-    mount "${LOOP}p2" "$ROOT"
-    echo "rootfs mounted from ${LOOP}p2"
+    if [ -b "${LOOP}p2" ]; then
+        mount "${LOOP}p2" "$ROOT"
+        echo "rootfs mounted from ${LOOP}p2"
+        return 0
+    fi
+    echo "no ${LOOP}p2, falling back to offset mount" >&2
+    START=$(sfdisk -d "$IMG" | grep 'start=' | grep -o 'start= *[0-9]*' | tr -dc '0-9\n' | sed -n '2p')
+    [ -n "$START" ] || { echo "cannot determine rootfs offset" >&2; return 1; }
+    mount -o offset=$((START * 512)) "$IMG" "$ROOT"
+    echo "rootfs mounted via offset $START"
 }
 
 mount_root

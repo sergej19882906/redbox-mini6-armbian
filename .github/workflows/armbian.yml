@@ -7,6 +7,7 @@ on:
       - 'vibe/redbox-mini6-armbian-e6d327'
     paths:
       - '.github/workflows/armbian.yml'
+      - 'scripts/**'
 
 permissions:
   contents: write

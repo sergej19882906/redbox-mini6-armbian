@@ -134,6 +134,8 @@ jobs:
           sed -e 's|PKG_URL="http://bitmath.org/code/mtdev/\${PKG_NAME}-\${PKG_VERSION}.tar.bz2"|PKG_URL="https://deb.debian.org/debian/pool/main/m/mtdev/mtdev_1.1.7.orig.tar.gz"|' \
               -e 's|PKG_SHA256="a107adad2101fecac54ac7f9f0e0a0dd155d954193da55c2340c97f2ff1d814e"|PKG_SHA256="a55bd02a9af4dd266c0042ec608744fff3a017577614c057da09f1f4566ea32c"|' \
               -i /tmp/le-build/packages/wayland/mtdev/package.mk
+          sed -e 's|PKG_URL="https://linuxtv.org/downloads/v4l-utils/\${PKG_NAME}-\${PKG_VERSION}.tar.xz"|PKG_URL="https://deb.debian.org/debian/pool/main/v/v4l-utils/v4l-utils_1.32.0.orig.tar.xz"|' \
+              -i /tmp/le-build/packages/sysutils/v4l-utils/package.mk
           grep -E 'PKG_VERSION|PKG_SHA256' /tmp/le-build/packages/debug/libunwind/package.mk
           grep -E 'PKG_URL' /tmp/le-build/packages/wayland/mtdev/package.mk
           cd /tmp/le-build

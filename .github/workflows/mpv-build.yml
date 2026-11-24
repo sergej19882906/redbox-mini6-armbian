@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,6 @@ jobs:
       - name: Build in arm64 trixie container
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           docker run --rm --platform linux/arm64 \
             -v "$GITHUB_WORKSPACE:/ws:ro" \
             -v /tmp/mpv-v4l2req.tar.gz:/tmp/mpv-v4l2req.tar.gz \

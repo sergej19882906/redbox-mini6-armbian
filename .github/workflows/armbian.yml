@@ -47,6 +47,18 @@ jobs:
             sudo bash scripts/inject-dtb.sh "$f"
           done
 
+      - name: Cache mpv/ffmpeg (v4l2-request) builds
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mpv-v4l2req.tar.gz
+          key: mpv-v4l2req-ffmpeg-v4l2request-hwaccel-mpv-0.42.0
+
+      - name: Install mpv with v4l2-request hwdec
+        run: |
+          for f in /tmp/armbian-build/output/images/*.img; do
+            sudo bash scripts/install-mpv-hwdec.sh "$f"
+          done
+
       - name: Compress
         run: |
           for f in /tmp/armbian-build/output/images/*.img; do

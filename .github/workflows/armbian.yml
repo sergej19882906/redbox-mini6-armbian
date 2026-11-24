@@ -80,7 +80,17 @@ jobs:
           path: /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz
           compression-level: 0
           if-no-files-found: error
-          retry-attempts: 3
+
+      - name: Attach to v1.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create v1.0 --repo "$GITHUB_REPOSITORY" \
+              --title "Redbox Mini 6 (v1) — v1.0" \
+              --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request"
+          gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
+            /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz /tmp/redbox-mini6-${{ matrix.id }}.sha256
 
   build-libreelec:
     if: github.event_name == 'workflow_dispatch'
@@ -144,3 +154,14 @@ jobs:
           path: /tmp/libreelec-redbox-mini6-*.img.xz
           compression-level: 0
           if-no-files-found: error
+
+      - name: Attach to v1.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create v1.0 --repo "$GITHUB_REPOSITORY" \
+              --title "Redbox Mini 6 (v1) — v1.0" \
+              --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request"
+          gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
+            /tmp/libreelec-redbox-mini6-*.img.xz /tmp/libreelec-redbox-mini6.sha256

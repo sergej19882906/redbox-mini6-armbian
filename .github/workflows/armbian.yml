@@ -102,6 +102,10 @@ jobs:
             uuid-dev wget default-jre-headless xfonts-utils xsltproc \
             zlib1g-dev curl lua5.2
           git clone --depth=1 --branch 12.95.1 https://github.com/LibreELEC/LibreELEC.tv.git /tmp/le-build
+          sed -e 's|PKG_VERSION="1.8.3"|PKG_VERSION="1.8.2"|' \
+              -e 's|PKG_SHA256="21b26bc75cd37b548d7952f2794cde711efa6c6151c4147cc3c52cfedbf11df4"|PKG_SHA256="3b888e01f3d25f7914bbfd31139066bb4547e079322975134b03c92e4c6a2066"|' \
+              -i /tmp/le-build/packages/debug/libunwind/package.mk
+          grep -E 'PKG_VERSION|PKG_SHA256' /tmp/le-build/packages/debug/libunwind/package.mk
           cd /tmp/le-build
           PROJECT=Allwinner DEVICE=H6 ARCH=aarch64 make image
           find target -maxdepth 1 -name '*.img*' | xargs ls -lh

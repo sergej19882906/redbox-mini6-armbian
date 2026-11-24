@@ -27,12 +27,13 @@ jobs:
       - name: Build in arm64 trixie container
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          sudo rm -rf /tmp/outvol /tmp/mpv-v4l2req.tar.gz
           docker run --rm --platform linux/arm64 \
             -v "$GITHUB_WORKSPACE:/ws:ro" \
-            -v /tmp/mpv-v4l2req.tar.gz:/tmp/mpv-v4l2req.tar.gz \
             -v /tmp/outvol:/out \
             arm64v8/debian:trixie \
-            bash -c 'cp -r /ws /ws-rw && cd /ws-rw && OUT=/out WS=/ws-rw bash scripts/build-mpv-v4l2req.sh'
+            bash -c 'cp -r /ws /ws-rw && cd /ws-rw && OUT=/out WS=/out bash scripts/build-mpv-v4l2req.sh'
+          mv /tmp/outvol/mpv-v4l2req.tar.gz /tmp/mpv-v4l2req.tar.gz
           ls -lh /tmp/mpv-v4l2req.tar.gz
 
       - name: Save to cache

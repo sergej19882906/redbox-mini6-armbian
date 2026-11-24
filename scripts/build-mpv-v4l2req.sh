@@ -18,7 +18,7 @@ apt-get update -qq
 apt-get install -y --no-install-recommends \
     build-essential git pkg-config ca-certificates nasm yasm \
     meson ninja-build file \
-    libasound2-dev libdrm-dev libplacebo-dev libass-dev libudev-dev \
+    libasound2-dev libdrm-dev libass-dev libudev-dev libepoxy-dev \
     libx11-dev libxext-dev libxrandr-dev libxinerama-dev \
     libgl-dev libegl-dev
 
@@ -38,6 +38,16 @@ done
     --extra-cflags="-Wno-error=incompatible-pointer-types"
 make -j"$(nproc)"
 make install
+ldconfig
+
+cd /usr/src
+git clone -q --depth 1 -b v7.387.0 https://github.com/haasn/libplacebo.git
+cd libplacebo
+meson setup build --prefix=/usr/local \
+    -Dvulkan=disabled -Dglslang=disabled -Dshaderc=disabled \
+    -Dd3d11=disabled -Dlibdovi=disabled -Dlcms=disabled
+ninja -C build
+ninja -C build install
 ldconfig
 
 cd /usr/src

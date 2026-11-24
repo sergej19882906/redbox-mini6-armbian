@@ -22,7 +22,8 @@ apt-get install -y --no-install-recommends \
     libx11-dev libxext-dev libxrandr-dev libxinerama-dev \
     libgl-dev libegl-dev
 
-rm -rf "$OUT"
+mkdir -p "$OUT"
+rm -rf "$OUT"/*
 
 cd /usr/src
 git clone -q --depth 1 -b v4l2-request-hwaccel https://github.com/kwiboo/FFmpeg.git ffmpeg

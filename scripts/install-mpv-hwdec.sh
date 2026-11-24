@@ -65,18 +65,22 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 apt-get update -qq
 apt-get install -y --no-install-recommends \
-    build-essential git pkg-config ca-certificates nasm yasm \
+    build-essential git pkg-config ca-certificates nasm yasm patch \
     meson ninja-build \
-    libasound2-dev libdrm-dev libplacebo-dev libass-dev \
+    libasound2-dev libdrm-dev libplacebo-dev libass-dev libudev-dev \
     libx11-dev libxext-dev libxrandr-dev libxinerama-dev \
     libgl-dev libegl-dev
 
 cd /usr/src
-git clone -q --depth 1 -b v4l2-request-hwaccel https://github.com/kwiboo/FFmpeg.git ffmpeg
+git clone -q --depth 1 -b n9.0.2 https://github.com/FFmpeg/FFmpeg.git ffmpeg
 cd ffmpeg
+for p in /tmp/mpvpatches/*.patch; do
+    git apply -C1 -p1 "$p"
+done
 ./configure --prefix=/usr/local \
     --disable-debug --disable-doc --disable-programs --disable-ffplay \
     --disable-static --enable-shared --enable-gpl --enable-version3 \
+    --enable-v4l2-request \
     --extra-cflags="-Wno-error=incompatible-pointer-types"
 make -j"$(nproc)"
 make install
@@ -94,6 +98,8 @@ apt-get clean
 rm -rf /var/lib/apt/lists/* /usr/src/* /root/build-mpv.sh
 CHROOT_SCRIPT
     chmod +x "$ROOT/root/build-mpv.sh"
+    mkdir -p "$ROOT/tmp/mpvpatches"
+    cp patches/ffmpeg-v4l2request/*.patch "$ROOT/tmp/mpvpatches/"
     chroot "$ROOT" /root/build-mpv.sh
     [ -x "$ROOT/usr/local/bin/mpv" ] || { echo "mpv build failed" >&2; exit 1; }
 

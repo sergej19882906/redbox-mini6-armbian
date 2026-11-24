@@ -43,7 +43,7 @@ ldconfig
 cd /usr/src
 git clone -q --depth 1 -b v7.387.0 https://github.com/haasn/libplacebo.git
 cd libplacebo
-git submodule update --init --depth 1 3rdparty/glad 3rdparty/jinja 3rdparty/markupsafe
+git submodule update --init --depth 1 3rdparty/glad 3rdparty/jinja 3rdparty/markupsafe 3rdparty/Vulkan-Headers 3rdparty/fast_float
 meson setup build --prefix=/usr/local \
     -Dvulkan=disabled -Dglslang=disabled -Dshaderc=disabled \
     -Dd3d11=disabled -Dlibdovi=disabled -Dlcms=disabled

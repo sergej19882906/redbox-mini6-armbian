@@ -2,6 +2,11 @@ name: Armbian + LibreELEC for Redbox Mini 6 (v1)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'vibe/redbox-mini6-armbian-e6d327'
+    paths:
+      - '.github/workflows/armbian.yml'
 
 permissions:
   contents: write
@@ -103,7 +108,10 @@ jobs:
           sed -e 's|PKG_VERSION="1.8.3"|PKG_VERSION="1.8.2"|' \
               -e 's|PKG_SHA256="21b26bc75cd37b548d7952f2794cde711efa6c6151c4147cc3c52cfedbf11df4"|PKG_SHA256="3b888e01f3d25f7914bbfd31139066bb4547e079322975134b03c92e4c6a2066"|' \
               -i /tmp/le-build/packages/debug/libunwind/package.mk
+          sed -e 's|http://bitmath.org/code/mtdev/|https://bitmath.se/org/code/mtdev/|' \
+              -i /tmp/le-build/packages/wayland/mtdev/package.mk
           grep -E 'PKG_VERSION|PKG_SHA256' /tmp/le-build/packages/debug/libunwind/package.mk
+          grep -E 'PKG_URL' /tmp/le-build/packages/wayland/mtdev/package.mk
           cd /tmp/le-build
           PROJECT=Allwinner DEVICE=H6 ARCH=aarch64 make image
           find target -maxdepth 1 -name '*.img*' | xargs ls -lh

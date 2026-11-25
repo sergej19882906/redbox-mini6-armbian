@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'vibe/redbox-mini6-armbian-e6d327'
+      - main
     paths:
       - '.github/workflows/armbian.yml'
       - 'scripts/**'

@@ -1,4 +1,4 @@
-name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 17:16 (retry delivery test)
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 18:40 (lxqt retry: fast xz level, Liefer compress exposure)
 
 on:
   workflow_dispatch:
@@ -117,7 +117,7 @@ jobs:
           df -h /
           for f in "${imgs[@]}"; do
             out="/tmp/redbox-mini6-${VARIANT}-$(date +%Y%m%d).img.xz"
-            xz -T0 -2 -c "$f" > "$out"
+            nice -n 5 xz -T0 -1 -c "$f" > "$out"
             sha256sum "$out" | tee /tmp/redbox-mini6-${VARIANT}.sha256
             rm -f "$f"
           done

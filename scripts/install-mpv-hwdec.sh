@@ -47,15 +47,17 @@ mount_root() {
 
 mount_root
 
-if [ ! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
-    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+if [ "$(uname -m)" = "x86_64" ]; then
+    if [ ! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    fi
+    if [ ! -f /usr/bin/qemu-aarch64-static ]; then
+        cid=$(docker create multiarch/qemu-user-static)
+        docker cp "$cid:/usr/bin/qemu-aarch64-static" /usr/bin/qemu-aarch64-static
+        docker rm "$cid" >/dev/null
+    fi
+    cp /usr/bin/qemu-aarch64-static "$ROOT/usr/bin/"
 fi
-if [ ! -f /usr/bin/qemu-aarch64-static ]; then
-    cid=$(docker create multiarch/qemu-user-static)
-    docker cp "$cid:/usr/bin/qemu-aarch64-static" /usr/bin/qemu-aarch64-static
-    docker rm "$cid" >/dev/null
-fi
-cp /usr/bin/qemu-aarch64-static "$ROOT/usr/bin/"
 cat /etc/resolv.conf > "$ROOT/etc/resolv.conf"
 
 mount --bind /dev "$ROOT/dev"

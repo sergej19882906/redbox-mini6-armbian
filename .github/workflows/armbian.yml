@@ -109,17 +109,6 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
-      - name: Upload image artifact before attach
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: images-libreelec
-          path: |
-            /tmp/libreelec-redbox-mini6-*.img.xz
-            /tmp/libreelec-redbox-mini6.sha256
-          compression-level: 0
-          if-no-files-found: error
-
       - name: Attach to v1.0 release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -209,6 +198,17 @@ jobs:
             sha256sum "$out" | tee /tmp/libreelec-redbox-mini6.sha256
             rm -f "$f"
           done
+
+      - name: Upload image artifact before attach
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: images-libreelec
+          path: |
+            /tmp/libreelec-redbox-mini6-*.img.xz
+            /tmp/libreelec-redbox-mini6.sha256
+          compression-level: 0
+          if-no-files-found: error
 
       - name: Attach to v1.0 release
         env:

@@ -43,13 +43,18 @@ jobs:
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           git clone --depth=1 --branch v26.8.0-trunk.424 https://github.com/armbian/build.git /tmp/armbian-build
           cd /tmp/armbian-build
-          sudo -E ./compile.sh build ${{ matrix.args }}
+          rc=0
+          sudo -E ./compile.sh build ${{ matrix.args }} 2>&1 | tee compile.log || rc=$?
           sudo chown -R runner:runner output
           ls -lh output/images/
+          df -h /
           imgs=$(ls output/images/*.img 2>/dev/null | wc -l)
-          if [ "$imgs" -lt 1 ]; then
-            echo "##[error]Build step ended but no *.img in output/images — Armbian build did not run"
-            tail -100 log/*.log 2>/dev/null || true
+          echo "images produced: $imgs" >> "$GITHUB_STEP_SUMMARY"
+          ls -l output/images/*.img* >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          if [ "$rc" -ne 0 ] || [ "$imgs" -lt 1 ]; then
+            echo "## Armbian build FAILED (rc=$rc, images=$imgs)" >> "$GITHUB_STEP_SUMMARY"
+            tail -n 120 compile.log | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY"
+            grep -viE 'token|password' compile.log | tail -n 25 | sed 's/^/::error::/'
             exit 1
           fi
 
@@ -81,7 +86,8 @@ jobs:
         run: |
           shopt -s nullglob
           imgs=(/tmp/armbian-build/output/images/*.img)
-          [ ${#imgs[@]} -ge 1 ] || { echo "##[error]no .img found to compress"; exit 1; }
+          [ ${#imgs[@]} -ge 1 ] || { echo "::error::no .img found to compress"; df -h >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+          df -h /
           for f in "${imgs[@]}"; do
             out="/tmp/redbox-mini6-${VARIANT}-$(date +%Y%m%d).img.xz"
             xz -T0 -2 -c "$f" > "$out"
@@ -94,21 +100,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -x
-          which gh
-          for i in $(seq 1 60); do
+          rm -f /tmp/attach.log
+          for i in $(seq 1 20); do
             timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break
             timeout 300 gh release create v1.0 --repo "$GITHUB_REPOSITORY" \
               --title "Redbox Mini 6 (v1) — v1.0" \
               --notes "Armbian (minimal, LXQt) и LibreELEC с DTB Redbox Mini 6 v1, mpv с аппаратным декодированием cedrus/V4L2-Request" && break
-            echo "retry create $i"; sleep 30
+            echo "retry create $i $(date -u +%T)" | tee -a /tmp/attach.log; sleep 30
           done
-          for i in $(seq 1 60); do
+          up_ok=0
+          for i in $(seq 1 20); do
             timeout 1800 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
-              /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz /tmp/redbox-mini6-${{ matrix.id }}.sha256 && break
-            echo "retry upload $i"; sleep 30
+              /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz /tmp/redbox-mini6-${{ matrix.id }}.sha256 2>>/tmp/attach.log && { up_ok=1; break; }
+            echo "retry upload $i $(date -u +%T)" | tee -a /tmp/attach.log; sleep 30
           done
-          timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets
+          echo "## attach (${{ matrix.id }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "upload ok: $up_ok" >> "$GITHUB_STEP_SUMMARY"
+          tail -n 40 /tmp/attach.log 2>/dev/null | grep -viE 'x-access-token|ghs_|token ' | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY" || true
 
       - uses: actions/upload-artifact@v4
         continue-on-error: true
@@ -117,6 +125,15 @@ jobs:
           path: /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz
           compression-level: 0
           if-no-files-found: error
+
+      - name: Upload build diagnostics (best-effort)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.id }}
+          path: /tmp/armbian-build/compile.log
+          if-no-files-found: ignore
 
   build-libreelec:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'LE:')

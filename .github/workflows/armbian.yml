@@ -1,4 +1,4 @@
-name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 18:40 (lxqt retry: fast xz level, Liefer compress exposure)
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 19:50 (lxqt attempt 5)
 
 on:
   workflow_dispatch:

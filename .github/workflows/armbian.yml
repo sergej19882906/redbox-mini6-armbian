@@ -35,21 +35,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Gate (skip LE if its asset is already on v1.0)
-        id: gate
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VARIANT: libreelec-redbox-mini6
-        run: |
-          names=$(timeout 60 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '[.assets[].name]|join(" ")' 2>/dev/null || echo '')
-          if echo "$names" | grep -q "libreelec-redbox-mini6-"; then
-            echo "skip=yes" >> "$GITHUB_OUTPUT"
-            echo "LE asset already on v1.0 - skip"
-          else
-            echo "skip=no" >> "$GITHUB_OUTPUT"
-            echo "LE asset missing - build"
-          fi
-
       - name: Gate (skip variant if its asset is already on v1.0)
         id: gate
         env:
@@ -188,6 +173,21 @@ jobs:
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
+
+      - name: Gate (skip LE if its asset is already on v1.0)
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VARIANT: libreelec-redbox-mini6
+        run: |
+          names=$(timeout 60 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '[.assets[].name]|join(" ")' 2>/dev/null || echo '')
+          if echo "$names" | grep -q "libreelec-redbox-mini6-"; then
+            echo "skip=yes" >> "$GITHUB_OUTPUT"
+            echo "LE asset already on v1.0 - skip"
+          else
+            echo "skip=no" >> "$GITHUB_OUTPUT"
+            echo "LE asset missing - build"
+          fi
 
       - name: Free disk space
         run: |

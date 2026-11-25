@@ -1,0 +1,33 @@
+name: Connectivity probe
+
+on:
+  push:
+    paths:
+      - '.probe'
+      - '.github/workflows/probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe runner-server link (api + uploads)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in 1 2 3; do
+            echo "--- attempt $i $(date -u +%T) ---"
+            if timeout 60 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets; then echo API_OK; fi
+            timeout 300 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber .probe \
+              && echo UPLOAD_OK
+            sleep 20
+          done
+          timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets
+          echo "## probe $(date -u)" >> "$GITHUB_STEP_SUMMARY"
+          ls -l .probe >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true

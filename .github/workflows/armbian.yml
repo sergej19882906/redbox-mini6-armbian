@@ -1,4 +1,4 @@
-name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 13:42 (retry lxqt after runner-comm loss)
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 15:46 (retrigger: push-event of 4667e4f was not delivered)
 
 on:
   workflow_dispatch:

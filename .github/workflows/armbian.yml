@@ -1,4 +1,4 @@
-name: Armbian + LibreELEC for Redbox Mini 6 (v1) # retrigger after api.github.com outage
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 03:45 (re-run for v1.0 assets)
 
 on:
   workflow_dispatch:

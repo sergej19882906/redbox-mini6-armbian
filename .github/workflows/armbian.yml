@@ -1,4 +1,4 @@
-name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 19:50 (lxqt attempt 5)
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-25 (lxqt-only run)
 
 on:
   workflow_dispatch:
@@ -26,8 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - id: minimal
-            args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=yes BUILD_DESKTOP=no KERNELBRANCH=tag:v6.18.40 KERNEL_CONFIGURE=no"
           - id: lxqt
             args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=no BUILD_DESKTOP=yes DESKTOP_ENVIRONMENT=lxqt DESKTOP_TIER=minimal KERNELBRANCH=tag:v6.18.40 KERNEL_CONFIGURE=no"
     env:

@@ -136,6 +136,7 @@ jobs:
 
       - name: Courier (push image chunks via git, bypass uploads.github.com)
         if: steps.gate.outputs.skip != 'yes'
+        continue-on-error: true
         run: |
           set -e
           f=$(ls /tmp/${COURIER_PREFIX}-*.img.xz 2>/dev/null | head -1)
@@ -154,8 +155,14 @@ jobs:
           git checkout -B courier/dist
           git add -f "$d"
           git -c user.name=ci -c user.email=ci@localhost commit -qm "courier: $base (90MB parts)"
-          git push -qf origin courier/dist
-          echo "courier: pushed $base as $(ls "$d" | wc -l) parts to courier/dist"
+          ok=0
+          for i in $(seq 1 15); do
+            timeout 600 git push -qf origin courier/dist && { ok=1; break; }
+            echo "courier retry $i $(date -u +%T)" | tee -a /tmp/courier.log
+            git checkout -B courier/dist  # chunks may have been lost if retries landed halfway
+            sleep 60
+          done
+          if [ "$ok" = 1 ]; then echo "courier: pushed $base as $(ls "$d" | wc -l) parts to courier/dist"; else echo "courier: FAILED after 15 retries"; fi
 
       - name: Attach to v1.0 release
         if: steps.gate.outputs.skip != 'yes'
@@ -281,6 +288,7 @@ jobs:
 
       - name: Courier (push image chunks via git, bypass uploads.github.com)
         if: steps.gate.outputs.skip != 'yes'
+        continue-on-error: true
         run: |
           set -e
           f=$(ls /tmp/${COURIER_PREFIX}-*.img.xz 2>/dev/null | head -1)
@@ -299,8 +307,14 @@ jobs:
           git checkout -B courier/dist
           git add -f "$d"
           git -c user.name=ci -c user.email=ci@localhost commit -qm "courier: $base (90MB parts)"
-          git push -qf origin courier/dist
-          echo "courier: pushed $base as $(ls "$d" | wc -l) parts to courier/dist"
+          ok=0
+          for i in $(seq 1 15); do
+            timeout 600 git push -qf origin courier/dist && { ok=1; break; }
+            echo "courier retry $i $(date -u +%T)" | tee -a /tmp/courier.log
+            git checkout -B courier/dist  # chunks may have been lost if retries landed halfway
+            sleep 60
+          done
+          if [ "$ok" = 1 ]; then echo "courier: pushed $base as $(ls "$d" | wc -l) parts to courier/dist"; else echo "courier: FAILED after 15 retries"; fi
 
       - name: Attach to v1.0 release
         if: steps.gate.outputs.skip != 'yes'

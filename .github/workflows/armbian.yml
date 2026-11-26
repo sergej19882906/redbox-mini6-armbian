@@ -1,4 +1,4 @@
-name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-26 04:1x (lxqt attempt 6)
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-26 05:1x (lxqt attempt 7, courier route)
 
 on:
   workflow_dispatch:
@@ -30,6 +30,7 @@ jobs:
             args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=no BUILD_DESKTOP=yes DESKTOP_ENVIRONMENT=lxqt DESKTOP_TIER=minimal KERNELBRANCH=tag:v6.18.40 KERNEL_CONFIGURE=no"
     env:
       VARIANT: ${{ matrix.id }}
+      COURIER_PREFIX: redbox-mini6-${{ matrix.id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -133,6 +134,29 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
+      - name: Courier (push image chunks via git, bypass uploads.github.com)
+        if: steps.gate.outputs.skip != 'yes'
+        run: |
+          set -e
+          f=$(ls /tmp/${COURIER_PREFIX}-*.img.xz 2>/dev/null | head -1)
+          if [ -z "$f" ]; then echo "courier: no image found"; exit 0; fi
+          base=$(basename "$f")
+          d=courier/${VARIANT:-img}
+          rm -rf "$d"; mkdir -p "$d"
+          split -b 90m -d "$f" "$d/${base}.part-"
+          [ -f "/tmp/${COURIER_PREFIX}.sha256" ] && cp "/tmp/${COURIER_PREFIX}.sha256" "$d/"
+          {
+            echo "# Reassemble $base"
+            echo "cat $(basename "$base")*.part-*' > $base  # (in this folder: cat *.part-* > $base)"
+            echo "sha256sum -c *.sha256"
+            echo "# then attach manually to release v1.0 (web UI) or: gh release upload v1.0 --clobber $base"
+          } > "$d/README.txt"
+          git checkout -B courier/dist
+          git add -f "$d"
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "courier: $base (90MB parts)"
+          git push -qf origin courier/dist
+          echo "courier: pushed $base as $(ls "$d" | wc -l) parts to courier/dist"
+
       - name: Attach to v1.0 release
         if: steps.gate.outputs.skip != 'yes'
         env:
@@ -169,6 +193,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'LE:')
     runs-on: ubuntu-latest
     timeout-minutes: 350
+    env:
+      COURIER_PREFIX: libreelec-redbox-mini6
     steps:
       - uses: actions/checkout@v4
 
@@ -252,6 +278,29 @@ jobs:
             /tmp/libreelec-redbox-mini6.sha256
           compression-level: 0
           if-no-files-found: error
+
+      - name: Courier (push image chunks via git, bypass uploads.github.com)
+        if: steps.gate.outputs.skip != 'yes'
+        run: |
+          set -e
+          f=$(ls /tmp/${COURIER_PREFIX}-*.img.xz 2>/dev/null | head -1)
+          if [ -z "$f" ]; then echo "courier: no image found"; exit 0; fi
+          base=$(basename "$f")
+          d=courier/${VARIANT:-img}
+          rm -rf "$d"; mkdir -p "$d"
+          split -b 90m -d "$f" "$d/${base}.part-"
+          [ -f "/tmp/${COURIER_PREFIX}.sha256" ] && cp "/tmp/${COURIER_PREFIX}.sha256" "$d/"
+          {
+            echo "# Reassemble $base"
+            echo "cat $(basename "$base")*.part-*' > $base  # (in this folder: cat *.part-* > $base)"
+            echo "sha256sum -c *.sha256"
+            echo "# then attach manually to release v1.0 (web UI) or: gh release upload v1.0 --clobber $base"
+          } > "$d/README.txt"
+          git checkout -B courier/dist
+          git add -f "$d"
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "courier: $base (90MB parts)"
+          git push -qf origin courier/dist
+          echo "courier: pushed $base as $(ls "$d" | wc -l) parts to courier/dist"
 
       - name: Attach to v1.0 release
         if: steps.gate.outputs.skip != 'yes'

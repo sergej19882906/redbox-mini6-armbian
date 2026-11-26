@@ -1,4 +1,4 @@
-name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-26 05:1x (lxqt attempt 7, courier route)
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-26 11:4x (lxqt attempt 9, courier retries + attach-always)
 
 on:
   workflow_dispatch:

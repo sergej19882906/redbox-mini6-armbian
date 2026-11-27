@@ -10,9 +10,12 @@
 
 | Образ | Что внутри | Размер (сжат.) |
 |---|---|---|
-| `armbian-minimal-*.img.xz` | Armbian 26.8 (trunk ≈ 26.8.3), минимальный сервер, ядро 6.18.40 | ~420 МБ |
-| `armbian-lxqt-*.img.xz` | То же + рабочий стол **LXQt** | ~910 МБ |
-| `libreelec-*.img.xz` | LibreELEC 12.95 (Kodi), устройство tanix-tx6 | ~200 МБ |
+| `redbox-mini6-minimal-*.img.xz` | Armbian 26.8, минимальный сервер, ядро 6.18.40 + **mpv с аппаратным декодированием** (v4l2-request) | ~430 МБ |
+| `redbox-mini6-lxqt-*.img.xz` | То же + рабочий стол **LXQt** | ~910 МБ |
+| `libreelec-redbox-mini6-*.img.xz` | LibreELEC 12.95 (Kodi), устройство tanix-tx6 | ~180 МБ |
+
+> ℹ️ Текущий `redbox-mini6-lxqt-20261124` собран до появления шага установки mpv — **без
+> предустановленного mpv** (появится в следующей пересборке; ставится вручную из `armbian-config`-репозиториев).
 
 Armbian собирается из [armbian/build](https://github.com/armbian/build), тег `v26.8.0-trunk.424`,
 ядро запинено `KERNELBRANCH=tag:v6.18.40`; драйвер AC200 содержится в патчах Armbian.
@@ -20,14 +23,18 @@ LibreELEC — из [LibreELEC/LibreELEC.tv](https://github.com/LibreELEC/LibreEL
 
 ## Откуда скачать
 
-Всегда берите **последний релиз в [Releases](https://github.com/sergej19882906/redbox-mini6-armbian/releases)**.
-Каждый релиз — это 3 образа + файлы `.sha256`. Промежуточные билды удаляются.
+**[Релиз v1.0](https://github.com/sergej19882906/redbox-mini6-armbian/releases/tag/v1.0)**:
+- `redbox-mini6-minimal-20261125.img.xz` (432 МБ) + `.sha256`
+- `redbox-mini6-lxqt-20261124.img.xz` (909 МБ)
+- `libreelec-redbox-mini6-20261124.img.xz` (176 МБ) + `.sha256`
+
+Новые сборки прикладываются к этому же релизу (`--clobber` по имени).
 
 ## Запись на флешку
 
 ```bash
-xz -d armbian-minimal-*.img.xz
-sudo dd if=armbian-minimal-*.img of=/dev/sdX bs=4M status=progress
+xz -d redbox-mini6-minimal-*.img.xz
+sudo dd if=redbox-mini6-minimal-*.img of=/dev/sdX bs=4M status=progress
 ```
 
 (или Rufus/Etcher — для них `.xz` сначала нужно распаковать)
@@ -37,7 +44,7 @@ sudo dd if=armbian-minimal-*.img of=/dev/sdX bs=4M status=progress
 - **Wi-Fi** XR819 — из ядра (`xradio`)
 - **Bluetooth** — любой USB-донгл (`btusb`), в Armbian и LibreELEC работает «из коробки»
 - **Ethernet** (EMAC + AC200 ePHY) — в Armbian и LibreELEC (драйвер AC200 есть в обоих ядрах)
-- **Видео/аудио** в LibreELEC — аппаратное (CedarX)
+- **Видео/аудио** в LibreELEC — аппаратное (CedarX); в Armbian — **mpv + v4l2-request** (cedrus, `vo=gpu-next`) в minimal-образе
 
 ## Настройки после загрузки (Armbian)
 
@@ -56,7 +63,7 @@ sudo dd if=armbian-minimal-*.img of=/dev/sdX bs=4M status=progress
 - `dtb/sun50i-h6-redbox-mini6.dtb` — скомпилированный DTB (25 КБ)
 - `scripts/inject-dtb.sh` — внедрение DTB в готовый Armbian-образ
 - `scripts/inject-le-dtb.sh` — внедрение DTB в LibreELEC-образ
-- `.github/workflows/armbian.yml` — сборка всех трёх образов (запуск — ручной)
+- `.github/workflows/armbian.yml` — сборка всех трёх образов (cron-дозор каждые 2 ч: доводит до релиза недостающее, лишнее пропускает гейтом)
 
 ## Как пересобрать
 

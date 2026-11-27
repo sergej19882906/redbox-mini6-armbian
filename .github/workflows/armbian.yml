@@ -26,6 +26,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - id: minimal
+            args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=yes BUILD_DESKTOP=no KERNELBRANCH=tag:v6.18.40 KERNEL_CONFIGURE=no"
           - id: lxqt
             args: "BOARD=tanix-tx6 BRANCH=current RELEASE=trixie BUILD_MINIMAL=no BUILD_DESKTOP=yes DESKTOP_ENVIRONMENT=lxqt DESKTOP_TIER=minimal KERNELBRANCH=tag:v6.18.40 KERNEL_CONFIGURE=no"
     env:
@@ -68,9 +70,14 @@ jobs:
             echo "skip=yes" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if echo "$names" | grep -q "redbox-mini6-${VARIANT}-" && echo "$names" | grep -q "redbox-mini6-${VARIANT}\.sha256"; then
-            echo "skip=yes" >> "$GITHUB_OUTPUT"
-            echo "asset ${VARIANT} already on v1.0 - skip"
+          if echo "$names" | grep -q "redbox-mini6-${VARIANT}-.*\.img\.xz"; then
+            if echo "$names" | grep -q "redbox-mini6-${VARIANT}\.sha256"; then
+              echo "skip=yes" >> "$GITHUB_OUTPUT"
+              echo "asset ${VARIANT} complete on v1.0 - skip"
+            else
+              echo "skip=sha" >> "$GITHUB_OUTPUT"
+              echo "image ${VARIANT} present but .sha256 missing - will complete checksum only"
+            fi
           else
             echo "skip=no" >> "$GITHUB_OUTPUT"
             echo "asset ${VARIANT} missing - build"
@@ -85,7 +92,7 @@ jobs:
           df -h /
 
       - name: Build Armbian (${{ matrix.id }})
-        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
+        if: steps.gate.outputs.skip == 'no' && steps.plan.outputs.need_build == 'yes'
         run: |
           sudo apt-get update
           if [ "$(uname -m)" = "x86_64" ]; then
@@ -109,7 +116,7 @@ jobs:
           fi
 
       - name: Inject Redbox Mini 6 DTB
-        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
+        if: steps.gate.outputs.skip == 'no' && steps.plan.outputs.need_build == 'yes'
         run: |
           shopt -s nullglob
           imgs=(/tmp/armbian-build/output/images/*.img)
@@ -119,14 +126,14 @@ jobs:
           done
 
       - name: Cache mpv/ffmpeg (v4l2-request) builds
-        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
+        if: steps.gate.outputs.skip == 'no' && steps.plan.outputs.need_build == 'yes'
         uses: actions/cache@v4
         with:
           path: /tmp/mpv-v4l2req.tar.gz
           key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
 
       - name: Install mpv with v4l2-request hwdec
-        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
+        if: steps.gate.outputs.skip == 'no' && steps.plan.outputs.need_build == 'yes'
         run: |
           shopt -s nullglob
           imgs=(/tmp/armbian-build/output/images/*.img)
@@ -136,7 +143,7 @@ jobs:
           done
 
       - name: Compress
-        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
+        if: steps.gate.outputs.skip == 'no' && steps.plan.outputs.need_build == 'yes'
         run: |
           shopt -s nullglob
           imgs=(/tmp/armbian-build/output/images/*.img)
@@ -152,7 +159,7 @@ jobs:
 
       - name: Save image to cache (attempt 1)
         id: imgsave
-        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
+        if: steps.gate.outputs.skip == 'no' && steps.plan.outputs.need_build == 'yes'
         continue-on-error: true
         uses: actions/cache/save@v4
         with:
@@ -162,7 +169,7 @@ jobs:
           key: img-redbox-mini6-${{ matrix.id }}-${{ github.run_id }}
 
       - name: Save image to cache (attempt 2, if attempt 1 failed)
-        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes' && steps.imgsave.outcome != 'success'
+        if: steps.gate.outputs.skip == 'no' && steps.plan.outputs.need_build == 'yes' && steps.imgsave.outcome != 'success'
         continue-on-error: true
         uses: actions/cache/save@v4
         with:
@@ -172,7 +179,7 @@ jobs:
           key: img-redbox-mini6-${{ matrix.id }}-${{ github.run_id }}-r2
 
       - name: Upload image artifact before attach
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip == 'no'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -184,7 +191,7 @@ jobs:
           if-no-files-found: error
 
       - name: Courier (push image chunks via git, bypass uploads.github.com)
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip == 'no'
         continue-on-error: true
         run: |
           set -e
@@ -214,7 +221,7 @@ jobs:
           if [ "$ok" = 1 ]; then echo "courier: pushed $base as $(ls "$d" | wc -l) parts to courier/dist"; else echo "courier: FAILED after 15 retries"; fi
 
       - name: Attach to v1.0 release
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip == 'no'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -235,6 +242,23 @@ jobs:
           echo "## attach (${{ matrix.id }})" >> "$GITHUB_STEP_SUMMARY"
           echo "upload ok: $up_ok" >> "$GITHUB_STEP_SUMMARY"
           tail -n 40 /tmp/attach.log 2>/dev/null | grep -viE 'x-access-token|ghs_|token ' | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Complete missing .sha256 on v1.0
+        if: steps.gate.outputs.skip == 'sha'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          for i in $(seq 1 10); do
+            timeout 900 gh release download v1.0 --repo "$GITHUB_REPOSITORY" --pattern "redbox-mini6-${VARIANT}-*.img.xz" --dir /tmp && break
+            echo "retry download $i $(date -u +%T)"; sleep 30
+          done
+          f=$(ls /tmp/redbox-mini6-${VARIANT}-*.img.xz | head -1)
+          sha256sum "$f" | sed 's|  .*/|  |' | tee /tmp/redbox-mini6-${VARIANT}.sha256
+          for i in $(seq 1 10); do
+            timeout 900 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber /tmp/redbox-mini6-${VARIANT}.sha256 && break
+            echo "retry sha upload $i $(date -u +%T)"; sleep 30
+          done
 
       - name: Upload build diagnostics (best-effort)
         if: always()
@@ -324,7 +348,7 @@ jobs:
           done
 
       - name: Upload image artifact before attach
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip == 'no'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -336,7 +360,7 @@ jobs:
           if-no-files-found: error
 
       - name: Courier (push image chunks via git, bypass uploads.github.com)
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip == 'no'
         continue-on-error: true
         run: |
           set -e
@@ -366,7 +390,7 @@ jobs:
           if [ "$ok" = 1 ]; then echo "courier: pushed $base as $(ls "$d" | wc -l) parts to courier/dist"; else echo "courier: FAILED after 15 retries"; fi
 
       - name: Attach to v1.0 release
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip == 'no'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -14,8 +14,6 @@
 | `redbox-mini6-lxqt-*.img.xz` | То же + рабочий стол **LXQt** | ~910 МБ |
 | `libreelec-redbox-mini6-*.img.xz` | LibreELEC 12.95 (Kodi), устройство tanix-tx6 | ~180 МБ |
 
-> ℹ️ Текущий `redbox-mini6-lxqt-20261124` собран до появления шага установки mpv — **без
-> предустановленного mpv** (появится в следующей пересборке; ставится вручную из `armbian-config`-репозиториев).
 
 Armbian собирается из [armbian/build](https://github.com/armbian/build), тег `v26.8.0-trunk.424`,
 ядро запинено `KERNELBRANCH=tag:v6.18.40`; драйвер AC200 содержится в патчах Armbian.
@@ -25,8 +23,10 @@ LibreELEC — из [LibreELEC/LibreELEC.tv](https://github.com/LibreELEC/LibreEL
 
 **[Релиз v1.0](https://github.com/sergej19882906/redbox-mini6-armbian/releases/tag/v1.0)**:
 - `redbox-mini6-minimal-20261125.img.xz` (432 МБ) + `.sha256`
-- `redbox-mini6-lxqt-20261124.img.xz` (909 МБ)
+- **`redbox-mini6-lxqt-20261127.img.xz` (946 МБ) — актуальный, с предустановленным mpv** (v4l2-request) + `.sha256`
+- `redbox-mini6-lxqt-20261124.img.xz` (909 МБ) — первая сборка, без предустановленного mpv + `.sha256`
 - `libreelec-redbox-mini6-20261124.img.xz` (176 МБ) + `.sha256`
+- `mpv-v4l2req.tar.gz` — mpv с аппаратным декодированием отдельным архивом (для ручной установки в любой Armbian: `tar xzf mpv-v4l2req.tar.gz -C /`)
 
 Новые сборки прикладываются к этому же релизу (`--clobber` по имени).
 

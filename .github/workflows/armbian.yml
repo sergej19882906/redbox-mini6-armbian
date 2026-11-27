@@ -162,7 +162,7 @@ jobs:
           for f in "${imgs[@]}"; do
             out="/tmp/redbox-mini6-${VARIANT}-$(date +%Y%m%d).img.xz"
             nice -n 5 xz -T0 -1 -c "$f" > "$out"
-            sha256sum "$out" | tee /tmp/redbox-mini6-${VARIANT}.sha256
+            sha256sum "$out" | sed 's|  .*/|  |' | tee /tmp/redbox-mini6-${VARIANT}.sha256
             rm -f "$f"
           done
           ls -lh /tmp/redbox-mini6-${VARIANT}*
@@ -309,6 +309,33 @@ jobs:
           [ -f /tmp/mpv-v4l2req.tar.gz ] || { echo "no tarball in cache - will ride along with next build"; exit 0; }
           for i in $(seq 1 20); do
             timeout 300 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber /tmp/mpv-v4l2req.tar.gz && { echo "mpv tarball attached to v1.0"; exit 0; }
+            echo "retry $i $(date -u +%T)"; sleep 60
+          done
+
+  sha-files:
+    name: Publish per-date .sha256 files to v1.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: sha-files
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload checksums to v1.0
+        run: |
+          names=$(timeout 60 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '[.assets[].name]|join(" ")' 2>/dev/null || echo '')
+          missing=""
+          for f in checksums/*.sha256; do
+            echo "$names" | grep -q "$(basename "$f")" || missing="$missing $f"
+          done
+          # keep shared redbox-mini6-lxqt.sha256 pointing at the newest image (clean basename)
+          cp checksums/redbox-mini6-lxqt-20261127.sha256 /tmp/redbox-mini6-lxqt.sha256
+          missing="$missing /tmp/redbox-mini6-lxqt.sha256"
+          [ -n "$missing" ] || { echo "all checksum files already on v1.0 - skip"; exit 0; }
+          for i in $(seq 1 20); do
+            timeout 300 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber $missing && { echo "checksums attached"; break; }
             echo "retry $i $(date -u +%T)"; sleep 60
           done
 

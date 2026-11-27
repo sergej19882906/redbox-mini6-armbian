@@ -2,6 +2,11 @@ name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-27 1
 
 on:
   workflow_dispatch:
+    inputs:
+      force_variant:
+        description: 'Force rebuild variant (minimal / lxqt), bypasses gate'
+        required: false
+        default: ''
   push:
     branches:
       - main
@@ -61,8 +66,15 @@ jobs:
         id: gate
         env:
           GH_TOKEN: ${{ github.token }}
+          FORCE_VARIANT: ${{ github.event.inputs.force_variant || '' }}
+          COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
         run: |
           names=$(timeout 60 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '[.assets[].name]|join(" ")' 2>/dev/null || echo '')
+          if [ "$FORCE_VARIANT" = "$VARIANT" ] || echo "$COMMIT_MSG" | grep -q "REBUILD:$VARIANT\b"; then
+            echo "skip=no" >> "$GITHUB_OUTPUT"
+            echo "forced rebuild of ${VARIANT} - bypassing gate"
+            exit 0
+          fi
           if [ -z "$names" ] && ! timeout 45 git ls-remote -q origin >/dev/null 2>&1; then
             echo "zone incident: API and git both unreachable - skipping build, next cron will retry"
             echo "skip=yes" >> "$GITHUB_OUTPUT"
@@ -138,6 +150,18 @@ jobs:
           [ ${#imgs[@]} -ge 1 ] || { echo "##[error]no .img found for mpv install"; exit 1; }
           for f in "${imgs[@]}"; do
             sudo bash scripts/install-mpv-hwdec.sh "$f"
+          done
+
+      - name: Attach mpv tarball to v1.0 (standalone artifact)
+        if: steps.gate.outputs.skip == 'no'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f /tmp/mpv-v4l2req.tar.gz ] || { echo "no mpv tarball in cache"; exit 0; }
+          for i in $(seq 1 10); do
+            timeout 300 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber /tmp/mpv-v4l2req.tar.gz && { echo "mpv tarball attached to v1.0"; break; }
+            echo "retry mpv upload $i $(date -u +%T)"; sleep 30
           done
 
       - name: Compress

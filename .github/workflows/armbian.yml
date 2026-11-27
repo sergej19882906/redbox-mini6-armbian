@@ -152,18 +152,6 @@ jobs:
             sudo bash scripts/install-mpv-hwdec.sh "$f"
           done
 
-      - name: Attach mpv tarball to v1.0 (standalone artifact)
-        if: steps.gate.outputs.skip == 'no'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          [ -f /tmp/mpv-v4l2req.tar.gz ] || { echo "no mpv tarball in cache"; exit 0; }
-          for i in $(seq 1 10); do
-            timeout 300 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber /tmp/mpv-v4l2req.tar.gz && { echo "mpv tarball attached to v1.0"; break; }
-            echo "retry mpv upload $i $(date -u +%T)"; sleep 30
-          done
-
       - name: Compress
         if: steps.gate.outputs.skip == 'no' && steps.plan.outputs.need_build == 'yes'
         run: |
@@ -290,6 +278,39 @@ jobs:
           name: logs-${{ matrix.id }}
           path: /tmp/armbian-build/compile.log
           if-no-files-found: ignore
+
+  mpv-asset:
+    name: Attach mpv tarball to v1.0 (standalone)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: mpv-asset
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gate (skip if tarball already on v1.0)
+        run: |
+          names=$(timeout 60 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '[.assets[].name]|join(" ")' 2>/dev/null || echo '')
+          if echo "$names" | grep -q "mpv-v4l2req.tar.gz"; then
+            echo "mpv tarball already on v1.0 - skip"
+          else
+            echo "missing - will upload"
+          fi
+      - name: Restore mpv tarball from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/mpv-v4l2req.tar.gz
+          key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
+          restore-keys: mpv-v4l2req-
+      - name: Upload tarball to v1.0
+        run: |
+          [ -f /tmp/mpv-v4l2req.tar.gz ] || { echo "no tarball in cache - will ride along with next build"; exit 0; }
+          for i in $(seq 1 20); do
+            timeout 300 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber /tmp/mpv-v4l2req.tar.gz && { echo "mpv tarball attached to v1.0"; exit 0; }
+            echo "retry $i $(date -u +%T)"; sleep 60
+          done
 
   build-libreelec:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'LE:')

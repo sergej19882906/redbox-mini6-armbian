@@ -330,9 +330,6 @@ jobs:
           for f in checksums/*.sha256; do
             echo "$names" | grep -q "$(basename "$f")" || missing="$missing $f"
           done
-          # keep shared redbox-mini6-lxqt.sha256 pointing at the newest image (clean basename)
-          cp checksums/redbox-mini6-lxqt-20261127.sha256 /tmp/redbox-mini6-lxqt.sha256
-          missing="$missing /tmp/redbox-mini6-lxqt.sha256"
           [ -n "$missing" ] || { echo "all checksum files already on v1.0 - skip"; exit 0; }
           for i in $(seq 1 20); do
             timeout 300 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber $missing && { echo "checksums attached"; break; }

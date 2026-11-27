@@ -1,0 +1,39 @@
+name: Cleanup release v1.0 (delete superseded assets)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/cleanup.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete superseded assets from v1.0
+        run: |
+          echo "## before" >> "$GITHUB_STEP_SUMMARY"
+          timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | tee -a "$GITHUB_STEP_SUMMARY"
+          for a in redbox-mini6-lxqt-20261124.img.xz \
+                   redbox-mini6-lxqt-20261124.sha256 \
+                   redbox-mini6-lxqt.sha256; do
+            if timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qx "$a"; then
+              for i in 1 2 3 4 5; do
+                timeout 120 gh release delete-asset v1.0 "$a" --repo "$GITHUB_REPOSITORY" -y && { echo "deleted: $a"; break; }
+                echo "retry delete $a ($i)"; sleep 30
+              done
+            else
+              echo "not present: $a"
+            fi
+          done
+          echo "## after" >> "$GITHUB_STEP_SUMMARY"
+          timeout 120 gh release view v1.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | tee -a "$GITHUB_STEP_SUMMARY"

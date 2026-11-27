@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     timeout-minutes: 350
     strategy:
       fail-fast: false
@@ -150,7 +150,8 @@ jobs:
           done
           ls -lh /tmp/redbox-mini6-${VARIANT}*
 
-      - name: Save image to cache (survives this runner's death)
+      - name: Save image to cache (attempt 1)
+        id: imgsave
         if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
         continue-on-error: true
         uses: actions/cache/save@v4
@@ -159,6 +160,16 @@ jobs:
             /tmp/redbox-mini6-${{ matrix.id }}*.img.xz
             /tmp/redbox-mini6-${{ matrix.id }}.sha256
           key: img-redbox-mini6-${{ matrix.id }}-${{ github.run_id }}
+
+      - name: Save image to cache (attempt 2, if attempt 1 failed)
+        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes' && steps.imgsave.outcome != 'success'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /tmp/redbox-mini6-${{ matrix.id }}*.img.xz
+            /tmp/redbox-mini6-${{ matrix.id }}.sha256
+          key: img-redbox-mini6-${{ matrix.id }}-${{ github.run_id }}-r2
 
       - name: Upload image artifact before attach
         if: steps.gate.outputs.skip != 'yes'

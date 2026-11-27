@@ -1,0 +1,60 @@
+[SIZE=5][B]Готовые образы для TV-приставки Redbox Mini 6 (v1)[/B][/SIZE]
+[SIZE=3]Armbian 26.8 (minimal / LXQt) + LibreELEC — Allwinner H6, 1 ГБ RAM[/SIZE]
+
+[SIZE=4][B]Что это[/B][/SIZE]
+Полноценные альтернативные прошивки для операторской приставки [B]Redbox Mini 6 v1[/B] (A1/Velcom, клон Tanix TX6).
+Пишутся на SD-карту (от 4 ГБ), родная Android-прошивка в eMMC не затрагивается.
+
+[B]Состав релиза v1.0:[/B]
+[LIST]
+[*][B]redbox-mini6-minimal-20261125.img.xz[/B] (432 МБ) — Armbian 26.8, минимальный сервер
+[*][B]redbox-mini6-lxqt-20261127.img.xz[/B] (946 МБ) — Armbian 26.8 + рабочий стол [B]LXQt[/B]
+[*][B]libreelec-redbox-mini6-20261124.img.xz[/B] (176 МБ) — LibreELEC 12.95 (Kodi)
+[*][B]mpv-v4l2req.tar.gz[/B] (18 МБ) — mpv с аппаратным декодированием отдельным архивом
+[/LIST]
+
+[SIZE=4][B]Что внутри[/B][/SIZE]
+[LIST]
+[*]Ядро [B]6.18.40[/B] (mainline + патчи Armbian для sun50i-h6)
+[*]Собственный DTB [B]sun50i-h6-redbox-mini6.dtb[/B]: 1 ГБ RAM + [B]Ethernet AC200[/B] (конфигурация сверена с 4 нативными BSP-прошивками: i2c3 @ 0x10, pwm1 24 МГц)
+[*]Wi-Fi XR819 — из ядра (xradio)
+[*]GPU Mali-T720 — [B]panfrost[/B] (рабочий стол ускоряется)
+[*]Видеодекодер [B]cedrus[/B] (V4L2) + [B]mpv с hwdec=v4l2request, vo=gpu-next[/B] (FFmpeg 9.0.2 с патчами v4l2-request, libplacebo 7.387) — уже в образах
+[*]Bluetooth — любой USB-донгл (btusb), из коробки
+[/LIST]
+
+[SIZE=4][B]Скриншоты[/B][/SIZE]
+[spoiler=Скриншоты / превью]
+[IMG]https://github.com/sergej19882906/redbox-mini6-armbian/raw/main/docs/screenshots/preview-1-neofetch.png[/IMG]
+[IMG]https://github.com/sergej19882906/redbox-mini6-armbian/raw/main/docs/screenshots/preview-2-boot.png[/IMG]
+[IMG]https://github.com/sergej19882906/redbox-mini6-armbian/raw/main/docs/screenshots/preview-3-release.png[/IMG]
+[/spoiler]
+
+[SIZE=4][B]Скачать[/B][/SIZE]
+[B]GitHub Releases (основной источник, навсегда):[/B]
+[URL]https://github.com/sergej19882906/redbox-mini6-armbian/releases/tag/v1.0[/URL]
+
+[B]Зеркало MEGA:[/B]
+[LIST]
+[*]MEGA_FOLDER_LINKS_HERE
+[/LIST]
+
+[SIZE=4][B]Как записать[/B][/SIZE]
+[LIST=1]
+[*]Скачать .img.xz и проверить контрольную сумму ([B]sha256sum -c *.sha256[/B])
+[*]Распаковать: [B]xz -d redbox-mini6-*.img.xz[/B]
+[*]Записать на SD-карту (Rufus/Etcher/balenaEtcher — или [B]dd if=*.img of=/dev/sdX bs=4M status=progress[/B])
+[*]Вставить в приставку, загрузиться (root, пароль задаётся при первом старте)
+[/LIST]
+Armbian рекомендует: [B]armbian-config[/B] → System → Swap → zram (обязательно на 1 ГБ RAM).
+
+[SIZE=4][B]Важно[/B][/SIZE]
+[LIST]
+[*]Запись на SD [B]не трогает[/B] Android в eMMC — откат возможен всегда
+[*]Не прошивать OTA/прошивки от других приставок H6 (bootsplash другой, IR может отличаться)
+[*]mpv-аппаратное декодирование: [I]mpv --hwdec=v4l2request file.mkv[/I] или конфиг уже в образе (/etc/mpv/mpv.conf)
+[*]Для старой сборки lxqt-20261124 mpv ставится из mpv-v4l2req.tar.gz: [B]tar xzf mpv-v4l2req.tar.gz -C /[/B]
+[/LIST]
+
+[SIZE=4][B]Исходники[/B][/SIZE]
+DTS, скрипты сборки и вся CI-автоматика: [URL]https://github.com/sergej19882906/redbox-mini6-armbian[/URL]

@@ -34,6 +34,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore image from cache (instant-delivery path)
+        id: imgcache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /tmp/redbox-mini6-${{ matrix.id }}*.img.xz
+            /tmp/redbox-mini6-${{ matrix.id }}.sha256
+          key: img-redbox-mini6-${{ matrix.id }}-none
+          restore-keys: |
+            img-redbox-mini6-${{ matrix.id }}-
+
+      - name: Plan (is a build needed?)
+        id: plan
+        run: |
+          if ls /tmp/${COURIER_PREFIX}-*.img.xz >/dev/null 2>&1; then
+            echo "image already available from cache - skipping build, going straight to delivery"
+            ls -lh /tmp/${COURIER_PREFIX}*
+            echo "need_build=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "no cached image - full build required"
+            echo "need_build=yes" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Gate (skip variant if its asset is already on v1.0)
         id: gate
         env:
@@ -62,7 +85,7 @@ jobs:
           df -h /
 
       - name: Build Armbian (${{ matrix.id }})
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
         run: |
           sudo apt-get update
           if [ "$(uname -m)" = "x86_64" ]; then
@@ -86,7 +109,7 @@ jobs:
           fi
 
       - name: Inject Redbox Mini 6 DTB
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
         run: |
           shopt -s nullglob
           imgs=(/tmp/armbian-build/output/images/*.img)
@@ -96,14 +119,14 @@ jobs:
           done
 
       - name: Cache mpv/ffmpeg (v4l2-request) builds
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
         uses: actions/cache@v4
         with:
           path: /tmp/mpv-v4l2req.tar.gz
           key: mpv-v4l2req-ffmpeg-v4l2request-mpv-0.42.0-v2
 
       - name: Install mpv with v4l2-request hwdec
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
         run: |
           shopt -s nullglob
           imgs=(/tmp/armbian-build/output/images/*.img)
@@ -113,7 +136,7 @@ jobs:
           done
 
       - name: Compress
-        if: steps.gate.outputs.skip != 'yes'
+        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
         run: |
           shopt -s nullglob
           imgs=(/tmp/armbian-build/output/images/*.img)
@@ -126,6 +149,16 @@ jobs:
             rm -f "$f"
           done
           ls -lh /tmp/redbox-mini6-${VARIANT}*
+
+      - name: Save image to cache (survives this runner's death)
+        if: steps.gate.outputs.skip != 'yes' && steps.plan.outputs.need_build == 'yes'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /tmp/redbox-mini6-${{ matrix.id }}*.img.xz
+            /tmp/redbox-mini6-${{ matrix.id }}.sha256
+          key: img-redbox-mini6-${{ matrix.id }}-${{ github.run_id }}
 
       - name: Upload image artifact before attach
         if: steps.gate.outputs.skip != 'yes'

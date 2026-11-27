@@ -36,7 +36,13 @@
 
 [B]Зеркало MEGA:[/B]
 [LIST]
-[*]MEGA_FOLDER_LINKS_HERE
+[*][URL=https://mega.nz/file/VsVmhBpY#_UBP7NspXSd5PBZZUXJ8pA]redbox-mini6-lxqt-20261127.img.xz[/URL] — 903 МБ (LXQt + mpv)
+[URL=https://mega.nz/file/t5MkzbxQ#40MTTsbT_UiYZ8tgpV864Q]redbox-mini6-lxqt-20261127.sha256[/URL] — контрольная сумма
+[URL=https://mega.nz/file/9ssSkICZ#D1bcDOmQxkK7hn1gw-HDZA]redbox-mini6-minimal-20261125.img.xz[/URL] — 412 МБ (minimal/server)
+[URL=https://mega.nz/file/d18iGR4Z#2xCZMFOnA3kecp9MpHOGRQ]redbox-mini6-minimal.sha256[/URL] — контрольная сумма
+[URL=https://mega.nz/file/VpdB1B7K#XLmNfPUE74Mi2BGWvPpw0g]libreelec-redbox-mini6-20261124.img.xz[/URL] — 168 МБ (LibreELEC)
+[URL=https://mega.nz/file/1tsW2YQZ#IutbhDnHRoZz2e-P7sdc9w]libreelec-redbox-mini6.sha256[/URL] — контрольная сумма
+[URL=https://mega.nz/file/h48QQTwR#dbnr2Z9OtqUDY_QTwrhqJQ]mpv-v4l2req.tar.gz[/URL] — 17 МБ (mpv + FFmpeg с v4l2-request)
 [/LIST]
 
 [SIZE=4][B]Как записать[/B][/SIZE]

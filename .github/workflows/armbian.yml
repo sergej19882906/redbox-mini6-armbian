@@ -162,7 +162,7 @@ jobs:
           git -c user.name=ci -c user.email=ci@localhost commit -qm "courier: $base (90MB parts)"
           ok=0
           for i in $(seq 1 15); do
-            timeout 600 git push -qf origin courier/dist && { ok=1; break; }
+            timeout 300 git push -qf origin courier/dist && { ok=1; break; }
             echo "courier retry $i $(date -u +%T)" | tee -a /tmp/courier.log
             git checkout -B courier/dist  # chunks may have been lost if retries landed halfway
             sleep 60
@@ -183,10 +183,10 @@ jobs:
             echo "retry create $i $(date -u +%T)" | tee -a /tmp/attach.log; sleep 30
           done
           up_ok=0
-          for i in $(seq 1 20); do
-            timeout 1800 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
+          for i in $(seq 1 30); do
+            timeout 900 gh release upload v1.0 --repo "$GITHUB_REPOSITORY" --clobber \
               /tmp/redbox-mini6-${{ matrix.id }}-*.img.xz /tmp/redbox-mini6-${{ matrix.id }}.sha256 2>>/tmp/attach.log && { up_ok=1; break; }
-            echo "retry upload $i $(date -u +%T)" | tee -a /tmp/attach.log; sleep 30
+            echo "retry upload $i $(date -u +%T)" | tee -a /tmp/attach.log; sleep 60
           done
           echo "## attach (${{ matrix.id }})" >> "$GITHUB_STEP_SUMMARY"
           echo "upload ok: $up_ok" >> "$GITHUB_STEP_SUMMARY"
@@ -314,7 +314,7 @@ jobs:
           git -c user.name=ci -c user.email=ci@localhost commit -qm "courier: $base (90MB parts)"
           ok=0
           for i in $(seq 1 15); do
-            timeout 600 git push -qf origin courier/dist && { ok=1; break; }
+            timeout 300 git push -qf origin courier/dist && { ok=1; break; }
             echo "courier retry $i $(date -u +%T)" | tee -a /tmp/courier.log
             git checkout -B courier/dist  # chunks may have been lost if retries landed halfway
             sleep 60

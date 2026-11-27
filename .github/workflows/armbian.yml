@@ -1,4 +1,4 @@
-name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-27 07:1x (image cached - delivery-only run)
+name: Armbian + LibreELEC for Redbox Mini 6 (v1) # dispatch marker: 2026-11-27 12:1x (lxqt attempt 17)
 
 on:
   workflow_dispatch:
